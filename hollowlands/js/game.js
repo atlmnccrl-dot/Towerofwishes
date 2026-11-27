@@ -1064,9 +1064,9 @@ G.render = function (dt) {
     const UI = HL.UI;
     if (G.state === 'title') UI.drawTitle(g, G);
     else {
-      if (G.state !== 'menu' && G.state !== 'cut') UI.drawHUD(g, G, dt);
+      if (G.state !== 'menu' && G.state !== 'cut' && !G.use3d) UI.drawHUD(g, G, dt);
       if (G.state === 'play') UI.drawGuide(g, G);
-      if (G.state === 'menu') UI.drawMenu(g, G);
+      if (G.state === 'menu' && !(G.use3d && UI.menu.tab === 'items')) UI.drawMenu(g, G, G.use3d);
       if (G.state === 'dialog') UI.drawDialog(g, G);
       if (G.state === 'fire') UI.drawFire(g, G);
       if (G.state === 'anvil') UI.drawAnvil(g, G);
@@ -1080,6 +1080,10 @@ G.render = function (dt) {
   }
   G.sg.clearRect(0, 0, G.screen.width, G.screen.height);
   G.sg.drawImage(G.buf, 0, 0, G.W * G.scale, G.H * G.scale);
+  if (G.use3d && !G.portrait && G.state !== 'title') {
+    if (G.state === 'play' || G.state === 'fade') HL.HD.hud(G.sg, G, dt);
+    if (G.state === 'menu') { if (HL.UI.menu.tab === 'items') HL.HD.items(G.sg, G); else HL.HD.menuHeader(G.sg, G); }
+  }
   if (G.state === 'play' && !G.portrait) HL.UI.drawControlsHD(G.sg, G);
 };
 

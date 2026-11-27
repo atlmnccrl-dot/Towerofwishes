@@ -314,7 +314,7 @@ HL.Player = class Player {
     if (this.state === 'roll' && this.t < 0.17 && !this.perfectUsed) { HL.Epic.perfect(this, sx, sy); return false; }
     if (this.ward) { this.ward = false; this.wardT = 10; this.inv = 0.5; A.play('clank'); HL.vfx.shock(this.x, this.y, 18, '#7fe8e0', 0.35); HL.vfx.burst(this.x, this.y, 7, '#7fe8e0', 14, 60); HL.vfx.flash('#d8fffa', 0.2); HL.fx.text(this.x, this.y - 16, 'warded', '#7fe8e0', 0.8); return false; }
     const real = Math.max(1, Math.round(dmg * (1 - this.def())));
-    this.hp -= real; this.inv = 0.6; this.flash = 0.12; G.hitstop = 0.06; G.shake = 2.5; G.hurtVig = 0.6;
+    this.hp -= real; if (HL.HD && G.use3d) HL.HD.num(this, real, false, '#ff7a6a'); this.inv = 0.6; this.flash = 0.12; G.hitstop = 0.06; G.shake = 2.5; G.hurtVig = 0.6;
     HL.Epic.onHurt();
     const a = Math.atan2(this.y - sy, this.x - sx), kb = HL.Epic.has('giant') ? 45 : 90;
     this.vx = Math.cos(a) * kb; this.vy = Math.sin(a) * kb;
@@ -362,7 +362,7 @@ HL.hitEnemy = function (e, dmg, o) {
     if (!o.breaker) {
       dmg *= 0.15; A.play('clank'); HL.fx.burst((e.x + o.fx) / 2, e.y - 6, HL.P.cream, 4, 50, 0.2); G.hitstop = 0.05;
       const p = G.player; const k = Math.atan2(p.y - e.y, p.x - e.x); p.vx += Math.cos(k) * 60; p.vy += Math.sin(k) * 60;
-      e.hp -= dmg; e.flash = 0.05; if (e.hp <= 0) HL.killEnemy(e, o);
+      e.hp -= dmg; e.flash = 0.05; if (HL.HD && G.use3d) HL.HD.num(e, dmg, false, '#a8a094'); if (e.hp <= 0) HL.killEnemy(e, o);
       return;
     }
     e.state = 'stagger'; e.t = 0; e.stagT = 1.3; A.play('clank'); HL.fx.text(e.x, e.y - 16, 'guard broken', HL.P.cream2, 0.8);
@@ -371,6 +371,7 @@ HL.hitEnemy = function (e, dmg, o) {
   if (e.vuln > 0) mult *= 1.5;
   if (e.type === 'keeper' && e.stunned > 0) mult = 1.6;
   e.hp -= dmg * mult; e.flash = 0.09; e.aggro = true;
+  if (HL.HD && G.use3d) HL.HD.num(e, dmg * mult, !!(o.heavy || o.ult || mult > 1.4));
   G.hitstop = Math.max(G.hitstop, o.heavy ? 0.085 : 0.045); G.shake = Math.max(G.shake, o.heavy ? 2.2 : 1);
   A.play(o.heavy ? 'hitHeavy' : 'hit');
   const armoured = e.type === 'guard' || e.type === 'keeper' || e.type === 'brute';

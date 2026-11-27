@@ -60,6 +60,23 @@ a roll with invulnerability frames, one stamina bar, hit-stop, white hit flash, 
 small screen shake (can be turned off), synthesised impacts, footsteps that change on ash, stone and wood.
 Every enemy attack has a red ground telegraph (ring, arc or aim line) that stays readable at this distance.
 
+### v0.9: items, animation and effects for third person
+- **Items are 3D models** in the world (weapons, armour bundles, relics, flasks, keys, letters, materials) on a
+  ring in their rarity colour (common cream, forged blue, relic violet, named gold) with a thin light shaft;
+  picking one up pulls it into you. Chests open with a hinged lid and light spilling out; crates and barrels
+  break apart.
+- **Animation**: one procedural pose system for everyone: weapon wind-up, swing and follow-through per attack,
+  charge crouch, hurt flinch (and a red flash), dash lean; foes rear back before they strike, lunge into it,
+  flinch when hit, and fall and sink when they die.
+- **Effects** scaled for an eye-level camera: light pillars are thinner and glow instead of covering the screen,
+  particles shrink with distance, old top-view dotted rings and slash dots are gone.
+- **The HUD and item screen are drawn sharp** at screen resolution (js/hd.js): health/stamina/XP bars, objective,
+  ash, pickup cards with the item's icon and rarity, banners, messages, style rank, callouts, boss/tide/trial
+  bars, floating damage numbers (big gold on heavy hits, red on you). The item screen has large slots with
+  rarity frames, a details panel with stats and an Equip/Use button. Map, journal and system keep their content.
+- Fixed: after a new game or a load, the 3D scene kept the old copy of the map, so chests, doors and gates did
+  not show their new state.
+
 ### v0.8: third person
 - **Camera** behind the shoulder (default; overhead stays in System): it eases toward where you walk, pulls in
   when trees or walls would block it, and turns when you drag any empty spot on the right of the screen

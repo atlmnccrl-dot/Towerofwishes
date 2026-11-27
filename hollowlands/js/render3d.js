@@ -285,7 +285,14 @@ HL.R3 = (() => {
       const e = {};
       const S = (name) => PROPS[name];
       switch (o.t) {
-        case 'container': if (o.spr && S(o.spr)) { e.closed = mk(S(o.spr), o.x, o.y - 2); e.open = mk(S(o.open || o.spr), o.x, o.y - 2); } break;
+        case 'container':
+          if (o.spr === 'chest') {
+            const pb = new Parts(); pb.add('box', 0, 0, 0, 9, 4.5, 6, P.wd1); pb.add('box', -2.5, 0, 0, 1, 4.7, 6.3, P.st2); pb.add('box', 2.5, 0, 0, 1, 4.7, 6.3, P.st2); pb.add('box', 0, 4.4, 0, 8, 0.2, 5, P.ink); pb.place(0, o.x, o.y - 2); e.base = meshOf(pb); group.add(e.base);
+            const pl = new Parts(); pl.add('box', 0, 0, 0, 9.2, 2, 6.2, P.wd0); pl.add('box', -2.5, 0, 0, 1, 2.1, 6.4, P.st2); pl.add('box', 2.5, 0, 0, 1, 2.1, 6.4, P.st2); pl.add('box', 0, 0.2, 3.1, 1.6, 1.6, 0.4, P.cream2);
+            for (const q of pl.list) q.m.premultiply(new T.Matrix4().makeTranslation(0, 0, 3.1));
+            e.lid = new T.Group(); e.lid.position.set(o.x, 4.5, o.y - 2 - 3.1); e.lid.add(meshOf(pl)); group.add(e.lid); e.lidA = 0;
+          } else if (o.spr && S(o.spr)) { e.closed = mk(S(o.spr), o.x, o.y - 2); e.open = mk(S(o.open || o.spr), o.x, o.y - 2); }
+          break;
         case 'note': case 'anvil': case 'crank': if (S(o.spr)) e.base = mk(S(o.spr), o.x, o.y - 2); if (o.glyph != null) e.glyph = glyphSprite(o.glyph, o.x, 13, o.y); break;
         case 'well': e.base = mk(S('well'), o.x, o.y - 5); e.bucket = mk(S('bucket'), o.x, o.y - 5); break;
         case 'stone': e.base = mk(S('standStone'), o.x, o.y - 2); e.glyphs = [0, 1, 2, 3].map((k) => glyphSprite(k, o.x, 21, o.y - 1)); break;
@@ -508,7 +515,7 @@ HL.R3 = (() => {
     return f;
   }
   function setFlash(f, on, color = P.cream) {
-    if (f.flashOn === on) return; f.flashOn = on;
+    const key = on ? color : false; if (f.flashOn === key) return; f.flashOn = key;
     for (const m of f.mats) { if (on) m.emissive.set(color); else m.emissive.setRGB(0, 0, 0); }
   }
   function equipWeapon(f, kind) {
@@ -521,21 +528,40 @@ HL.R3 = (() => {
   }
   const WLEN = { sword: 10, spear: 17, axe: 9, twin: 7.5, focus: 8, fists: 2.2, maul: 9 };
   const rotFor = (a) => Math.PI / 2 - a;
+  // procedural animation: run with lean and bob, breathe when still, wind up / twist through / recover on
+  // attacks, crouch to charge, flinch when struck, fall over and sink when dead
   function poseHumanoid(f, o) {
-    f.g.position.set(o.x, 0, o.y);
-    f.g.rotation.y = rotFor(o.face);
-    const sw = o.moving ? Math.sin(o.walkT * Math.PI * 2) : 0;
-    f.legs[0].rotation.x = sw * 0.75; f.legs[1].rotation.x = -sw * 0.75;
-    f.rig.position.y = o.moving ? Math.abs(sw) * 0.5 : 0;
-    f.rig.rotation.set(0, 0, 0); f.rig.position.z = 0;
-    if (o.pose === 'roll') { f.rig.rotation.x = 0.55; f.rig.position.y = 0.4; f.legs[0].rotation.x = 0.9; f.legs[1].rotation.x = -0.6; }
-    if (o.pose === 'dead') { f.rig.rotation.x = -Math.PI / 2; f.rig.position.y = 1.4; f.rig.position.z = -5; }
-    if (o.lean) f.rig.rotation.x = o.lean;
+    const t = o.time || 0, spd = HL.clamp((o.speed || 0) / 52, 0, 1.8), cyc = (o.walkT || 0) * Math.PI * 2;
+    const sw = o.moving ? Math.sin(cyc) : 0, amp = 0.45 + 0.35 * Math.min(1, spd);
+    f.g.position.set(o.x, 0, o.y); f.g.rotation.y = rotFor(o.face);
+    f.legs[0].rotation.x = sw * amp; f.legs[1].rotation.x = -sw * amp;
+    f.rig.position.set(0, o.moving ? Math.abs(Math.cos(cyc)) * 0.6 * Math.min(1, spd + 0.3) : 0, 0);
+    f.rig.rotation.set(o.moving ? 0.1 * Math.min(1.2, spd) : 0, 0, o.moving ? Math.sin(cyc) * 0.05 : 0);
+    if (f.body) f.body.scale.y = o.moving ? 1 : 1 + Math.sin(t * 2.3 + o.x) * 0.03;
+    if (o.atk) {
+      const a = o.atk, sd = a.side || 1, q = HL.clamp(a.p, 0, 1); let tw = 0, ln = 0;
+      if (a.phase === 'wind') { tw = -0.55 * q; ln = -0.06 * q; }
+      else if (a.phase === 'active') { tw = -0.55 + 1.25 * Math.min(1, q * 1.6); ln = 0.24; f.legs[0].rotation.x = -0.55; f.legs[1].rotation.x = 0.45; }
+      else { tw = 0.7 * (1 - q); ln = 0.24 * (1 - q); }
+      if (!a.spin) f.rig.rotation.y = tw * sd;
+      f.rig.rotation.x += ln;
+    }
+    if (o.charge > 0) { const k = Math.min(1, o.charge / 0.6); f.rig.position.y = -1.4 * k; f.rig.rotation.x += 0.18 * k; f.rig.rotation.y = -0.5 * k; f.legs[0].rotation.x = -0.6 * k; f.legs[1].rotation.x = 0.5 * k; }
+    if (o.windup > 0) { f.rig.position.y -= 0.9 * o.windup; f.rig.rotation.x -= 0.18 * o.windup; }
+    if (o.hurt > 0) { const k = Math.min(1, o.hurt); f.rig.rotation.x -= 0.5 * k; f.rig.position.z = -0.9 * k; }
+    if (o.pose === 'roll') { f.rig.rotation.x = 0.62; f.rig.position.y = 0.2; f.legs[0].rotation.x = 1.0; f.legs[1].rotation.x = -0.7; }
+    if (o.pose === 'dead') {
+      const k = HL.clamp((o.deadT == null ? 1 : o.deadT) / 0.4, 0, 1), e = k * k;
+      f.rig.rotation.set(-Math.PI / 2 * e, 0, 0.3 * e); f.rig.position.set(0, 1.4 * e, -5 * e);
+      if (o.deadT > 1) f.g.position.y = -(o.deadT - 1) * 7;
+    }
+    if (o.lean) f.rig.rotation.x += o.lean;
     if (o.wang != null) { f.arm.rotation.set(o.wtilt != null ? o.wtilt : 0.25, o.face - o.wang, 0); if (f.weapon) f.weapon.position.z = (o.thrust || 0) + 2; if (f.arm2) f.arm2.rotation.set((o.wtilt != null ? o.wtilt : 0.25) + (f.weapon2 ? 0 : 0.9 - sw * 0.5), f.weapon2 ? -(o.face - o.wang) * 0.7 + 0.5 : 0.25, 0); }
-    else if (f.arm) { f.arm.rotation.set(1.1 + sw * 0.5, 0.2, 0); if (f.arm2) f.arm2.rotation.set(1.1 - sw * 0.5, -0.2, 0); }
-    if (o.reach && f.arm) { f.arm.rotation.x = 0; f.arm2.rotation.set(0, -0.3, 0); }
-    if (o.lift) f.g.position.y = o.lift;
-    if (f.cape) f.cape.rotation.x = -0.15 - Math.min(1.1, (o.speed || 0) / 60);
+    else if (f.arm) { f.arm.rotation.set(1.15 + sw * 0.55, 0.2, 0); if (f.arm2) f.arm2.rotation.set(1.15 - sw * 0.55, -0.2, 0); }
+    if (o.raise && f.arm) { f.arm.rotation.set(-0.9, 0.5, 0); f.arm2.rotation.set(-0.9, -0.5, 0); }
+    if (o.reach && f.arm) { f.arm.rotation.set(0, 0.15, 0); f.arm2.rotation.set(0, -0.15, 0); }
+    if (o.lift) f.g.position.y += o.lift;
+    if (f.cape) f.cape.rotation.x = -0.15 - Math.min(1.1, (o.speed || 0) / 60) - (o.atk && o.atk.phase === 'active' ? 0.4 : 0);
     f.eyes.visible = !!o.glint;
   }
 
@@ -653,11 +679,20 @@ HL.R3 = (() => {
     viewH = w >= h ? 165 : 165 * (h / w) * 0.75;
     cam.updateProjectionMatrix();
   };
+  // the scene is built once per map; when the game makes new map objects, point the scene at them
+  function rebind(c, w) {
+    const old = c.w, dyn = new Map();
+    for (const [o, e] of c.dyn) { const i = old.objects.indexOf(o), n = w.objects[i]; if (n && n.t === o.t && n.id === o.id) { dyn.set(n, e); if (e.lid) { e.lidA = 0; e.wasOpen = undefined; } } }
+    c.dyn = dyn;
+    for (const B of c.buildings) { const i = old.buildings.indexOf(B.b); if (w.buildings[i]) B.b = w.buildings[i]; }
+    c.w = w;
+  }
   R.setWorld = function (w) {
     if (!R.ok) return;
     if (cur) scene.remove(cur.group);
     pendingSprites = [];
     if (!worlds[w.id]) { cur = { group: null }; worlds[w.id] = buildWorld(w); }
+    else if (worlds[w.id].w !== w) rebind(worlds[w.id], w); // a new game or a load made fresh map objects
     cur = worlds[w.id];
     for (const s of pendingSprites) cur.group.add(s);
     pendingSprites = [];
@@ -674,9 +709,41 @@ HL.R3 = (() => {
 
   // ---------------------------------------------------------------- per-frame
   const iconSprites = new Map(), iconTex = {};
+  const RAR = { common: '#ece4d1', forged: '#7fd8ff', relic: '#c88cff', named: '#ffc95a' };
+  function itemModel(id) {
+    const it = HL.ITEMS[id] || {}, g = new T.Group(), inner = new T.Group(); g.add(inner);
+    const L = (c) => new T.MeshLambertMaterial({ color: c, flatShading: true }), B = (c) => new T.MeshBasicMaterial({ color: c });
+    const add = (geom, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new T.Mesh(geom, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.castShadow = true; inner.add(m); return m; };
+    const W = HL.WEAPONS[id];
+    if (W) { const wm = weaponMesh(W.kind, []); wm.scale.setScalar(1.15); wm.rotation.set(-Math.PI / 2 + 0.25, 0, 0.3); wm.position.y = 1; inner.add(wm); if (id === 'dawnblade') wm.traverse((m) => { if (m.isMesh) m.material = B('#bffaf3'); }); }
+    else switch (it.kind) {
+      case 'armor': { const c = id === 'gravecloth_coat' ? '#6b5f5c' : id === 'rustbound_plate' ? P.st1 : id === 'champion_mantle' ? '#7a2828' : P.ch0; add(bx(6, 2.2, 4.5), L(c), 0, 1.1, 0); add(bx(6.2, 0.6, 1), L(id === 'champion_mantle' ? '#ffc95a' : P.rust), 0, 2.3, 0); break; }
+      case 'relic': if (id === 'bell_shard') { const m = add(new T.OctahedronGeometry(2.2, 0), B('#e7c98d'), 0, 3, 0); m.scale.y = 1.5; } else add(new T.SphereGeometry(1.8, 8, 6), B('#e99a4c'), 0, 3, 0); break;
+      case 'consumable':
+        if (id === 'fire_flask') { add(new T.CylinderGeometry(1.5, 1.8, 3, 8), L(P.st2), 0, 1.5, 0); add(new T.CylinderGeometry(0.6, 0.6, 1.6, 6), L(P.wd1), 0, 3.6, 0); add(new T.SphereGeometry(1.2, 8, 6), B('#ff9a3a'), 0, 1.6, 0); }
+        else if (id === 'dried_meat') add(bx(3.5, 1.6, 2.4), L('#6a2a22'), 0, 0.9, 0, 0, 0.4);
+        else { add(new T.SphereGeometry(1.8, 8, 6), L(P.cream2), 0, 1.8, 0); add(new T.TorusGeometry(1.2, 0.25, 4, 10), L(P.mo1), 0, 3.1, 0, Math.PI / 2); }
+        break;
+      case 'key': { const c = id === 'gate_key' ? P.rust : id === 'bell_key' ? P.bronze : id === 'crypt_key' ? P.cream2 : id === 'lumen_shard' ? '#7fe8e0' : id === 'tide_mark' ? P.red0 : P.st0; add(new T.TorusGeometry(1.2, 0.4, 4, 10), L(c), 0, 4, 0); add(bx(0.6, 4, 0.6), L(c), 0, 1.6, 0); add(bx(1.4, 0.6, 0.5), L(c), 0.7, 0.4, 0); break; }
+      case 'doc': add(bx(4, 0.4, 3), L(P.tan0), 0, 0.4, 0, 0, 0.3); break;
+      default: // materials
+        if (id === 'ash_herb') for (let i = 0; i < 3; i++) add(new T.ConeGeometry(0.7, 3.2, 4), L(P.mo0), (i - 1) * 0.9, 1.6, 0, 0, 0, (i - 1) * 0.3);
+        else if (id === 'cloth_scrap') add(bx(3.5, 0.6, 2.6), L(P.cream3), 0, 0.3, 0, 0, 0.5);
+        else if (id === 'iron_scrap') { add(bx(1.8, 1.2, 1.4), L(P.st2), -0.8, 0.6, 0, 0, 0.4); add(bx(1.4, 1, 1.2), L(P.rust), 0.9, 0.5, 0.3, 0, -0.5); }
+        else if (id === 'bone_dust') add(new T.ConeGeometry(1.8, 1.5, 7), L(P.ash0), 0, 0.75, 0);
+        else if (id === 'lamp_oil') { add(new T.CylinderGeometry(1.3, 1.5, 3, 8), L(P.st3), 0, 1.5, 0); add(bx(1, 0.6, 1), L(P.tan1), 0, 3.2, 0); }
+        else if (id === 'raw_meat') add(bx(3, 1.6, 2.2), L(P.red1), 0, 0.8, 0, 0, 0.4);
+        else add(bx(2, 2, 2), L(P.cream3), 0, 1, 0);
+    }
+    const col = RAR[it.rarity] || (it.kind === 'key' ? '#e7c98d' : '#ece4d1');
+    const ring = new T.Mesh(new T.RingGeometry(3.4, 4.4, 24), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.55, depthWrite: false, side: T.DoubleSide })); ring.rotation.x = -Math.PI / 2; g.add(ring); g.userData.ring = ring;
+    if (it.rarity && it.rarity !== 'common' || it.kind === 'key' || it.kind === 'relic') { const bm = new T.Mesh(new T.CylinderGeometry(0.6, 1.4, 40, 6, 1, true).translate(0, 20, 0), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.32, depthWrite: false })); g.add(bm); g.userData.beam = bm; }
+    g.userData.inner = inner; g.userData.ph = Math.random() * 6;
+    return g;
+  }
   function iconSprite(key, item) {
     let s = iconSprites.get(key);
-    if (!s) { const t = iconTex[item] || (iconTex[item] = canvasTex(HL.ART.icons[item] || HL.ART.icons.note)); s = new T.Sprite(new T.SpriteMaterial({ map: t, transparent: true })); s.scale.set(9, 9, 1); s.renderOrder = 4; scene.add(s); iconSprites.set(key, s); }
+    if (!s) { s = itemModel(item); scene.add(s); iconSprites.set(key, s); }
     s.userData.seen = true;
     return s;
   }
@@ -744,14 +811,15 @@ HL.R3 = (() => {
     }
     // dynamic objects
     for (const [o, e] of cur.dyn) {
-      if (e.closed) { const open = o.t === 'container' ? o.opened : o.t === 'roots' ? o.gone : o.open; e.closed.visible = !open; if (e.open) e.open.visible = !!open; }
+      if (e.closed) { const open = o.t === 'container' ? o.opened : o.t === 'roots' ? o.gone : o.open; e.closed.visible = !open; if (e.open) e.open.visible = !!open; if (o.t === 'container' && open && e.wasOpen === false) { HL.vfx.debris(o.x, o.y, 8, P.wd1, 0.7); HL.vfx.dust(o.x, o.y, 6); } if (o.t === 'container') e.wasOpen = !!open; }
+      if (e.lid) { const open = !!o.opened, target = open ? -1.95 : 0; if (open && e.wasOpen === false) { HL.vfx.light(o.x, o.y, 0xffd27a, 70, 0.8, 8); HL.vfx.embers(o.x, o.y, 10, '#ffd27a'); HL.vfx.beam(o.x, o.y, '#ffd27a', 0.6, 2.5, 40); } e.wasOpen = open; e.lidA += (target - e.lidA) * Math.min(1, dt * (open ? 7 : 20)); e.lid.rotation.x = e.lidA; }
       if (e.bucket) e.bucket.visible = !!G.flags.well_done;
       if (e.glyphs) e.glyphs.forEach((s, i) => (s.visible = i === o.face));
       if (e.glow) { e.glow.visible = o.charge > 0; e.glow.scale.setScalar(5 + Math.sin(t * 12) * 0.6); }
       if (e.flame) { const lit = o.t === 'brazier' || G.flags['lit:' + o.id]; e.flame.visible = !!lit; if (lit && HL.dist(o.x, o.y, camT.x, camT.y) < 260) animFlame(e.flame, t); }
       if (e.door) { const lit = G.flags['d:d_tower']; e.door.material.color.set(lit ? P.lt0 : P.ink); e.doorLight.intensity = lit ? 30 : 0; }
       if (o.t === 'pickup' && o.shard) { e.shard.visible = e.beam.visible = !o.taken; e.shard.position.set(o.x, 7 + Math.sin(t * 2.4) * 1.2, o.y); e.shard.rotation.y = t * 2; e.beam.material.opacity = 0.25 + Math.sin(t * 3) * 0.08; if (!o.taken && Math.random() < 0.08 && HL.dist(o.x, o.y, camT.x, camT.y) < 200) HL.vfx.embers(o.x, o.y, 1, '#7fe8e0'); }
-      else if (o.t === 'pickup') { const vis = !o.taken; if (e.base) e.base.visible = true; if (vis) { const s = iconSprite(o, o.item); s.visible = true; s.position.set(o.x, (o.pedestal ? 14 : 6) + Math.sin(t * 3) * 0.8, o.y); } }
+      else if (o.t === 'pickup') { const vis = !o.taken; if (e.base) e.base.visible = true; if (vis) { const s = iconSprite(o, o.item); s.visible = true; s.position.set(o.x, (o.pedestal ? 8.6 : 1.2) + Math.sin(t * 2.6) * 0.7, o.y); } }
       if (e.sh && HL.dist(o.x, o.y, camT.x, camT.y) < 320) { const awake = !!G.flags['shrine:' + o.id] || (G.state === 'cut' && G.cutAt && G.cutAt.x === o.x && G.cut && G.cut.id === 'shrine' && G.cut.i > 0); animShrine(e.sh, awake, t); if (awake && Math.random() < 0.25) HL.vfx.embers(o.x + (Math.random() - 0.5) * 20, o.y - 4, 1, '#7fe8e0'); }
       if (o.t === 'npc' && e.fig) e.fig.g.visible = !o.cond || !!o.cond(G.flags);
       if (o.t === 'cage') { const r = !!G.flags.rescued_tobin; e.closed.visible = !r; e.fig.g.visible = !r; }
@@ -766,9 +834,19 @@ HL.R3 = (() => {
       }
       if (e.cr) { const lit = o.litT > 0; e.cr.material.color.set(lit ? (o.litT < 2 && Math.floor(t * 8) % 2 ? '#4a5658' : '#bffaf3') : '#4a5658'); e.cr.rotation.y = t * (lit ? 3 : 0.5); e.cr.position.y = 15 + Math.sin(t * 2 + o.x) * 0.8; }
     }
-    for (const o of w.objects) if (o.t === 'pickup' && !o.taken && !cur.dyn.has(o) && !o.shard) { const s = iconSprite(o, o.item); s.visible = true; s.position.set(o.x, 6 + Math.sin(t * 3) * 0.8, o.y); }
-    for (const d of G.drops) { const s = iconSprite(d, d.item); s.visible = true; s.position.set(d.x, 5 + Math.sin(t * 4 + d.x) * 0.8, d.y); }
-    for (const [key, s] of iconSprites) { if (!s.userData.seen || (key.taken) || (key.gone)) { s.visible = false; } s.userData.seen = false; }
+    for (const o of w.objects) if (o.t === 'pickup' && !o.taken && !cur.dyn.has(o) && !o.shard) { const s = iconSprite(o, o.item); s.visible = true; s.position.set(o.x, 1.2 + Math.sin(t * 2.6) * 0.7, o.y); }
+    for (const d of G.drops) { const s = iconSprite(d, d.item); s.visible = true; s.position.set(d.x, 1 + Math.sin(t * 4 + d.x) * 0.5, d.y); }
+    for (const [key, s] of iconSprites) {
+      const gone = key.taken || key.gone || !s.userData.seen;
+      if (gone && s.visible && p && (key.taken || key.gone) && s.userData.collect == null) s.userData.collect = 0; // taken: fly into the Wayfarer
+      if (s.userData.collect != null) {
+        s.userData.collect += dt / 0.28; const k = Math.min(1, s.userData.collect);
+        s.position.lerp(tv.set(p ? p.x : s.position.x, 8, p ? p.y : s.position.z), k * 0.5); s.scale.setScalar(Math.max(0.05, 1 - k)); s.visible = k < 1;
+        if (k >= 1) { s.userData.collect = null; s.visible = false; s.scale.setScalar(1); }
+      } else if (gone) s.visible = false;
+      if (s.visible) { s.userData.inner.rotation.y = t * 1.6 + s.userData.ph; s.userData.ring.position.y = 0.25 - s.position.y; s.userData.ring.material.opacity = 0.35 + Math.sin(t * 3 + s.userData.ph) * 0.15; if (s.userData.beam) s.userData.beam.position.y = -s.position.y; }
+      s.userData.seen = false;
+    }
     // figures
     const alive = new Set();
     const pose = (key, make, fn) => { let f = figs.get(key); if (!f) { f = make(); figs.set(key, f); scene.add(f.g); scene.add(f.shadow); } alive.add(key); fn(f); };
@@ -791,9 +869,12 @@ HL.R3 = (() => {
       }
       const blink = p.inv > 0 && p.state !== 'roll' && p.state !== 'ult' && Math.floor(p.inv * 20) % 2;
       f.g.visible = !blink;
-      poseHumanoid(f, { x: p.x, y: p.y, face: p.face, moving: p.walkT > 0 && p.state === 'move', walkT: p.walkT, pose: p.state === 'roll' ? 'roll' : p.state === 'dead' ? 'dead' : null, t: p.t, wang, thrust, wtilt: p.state === 'attack' ? 0.05 : 0.5, lift: p.lift, speed: Math.hypot(p.vx, p.vy) });
+      let atkPose = null;
+      if (p.state === 'attack' && p.atk && wd) { const a = p.atk, H = a.heavy ? wd.heavy : null, dur = a.phase === 'wind' ? (a.heavy ? (H.slam ? 0.2 : 0.06) : wd.wind) : a.phase === 'active' ? (H && H.spin ? H.spin.dur : a.heavy ? (H.lunge ? 0.2 : 0.13) : wd.active) : (a.heavy ? wd.rec + 0.14 : wd.rec * (a.fin ? 1.3 : 1)); atkPose = { phase: a.phase, p: a.pt / Math.max(0.01, dur), side: a.side, spin: !!(H && (H.spin || H.spinCut)) }; }
+      if (p.state === 'exec') atkPose = { phase: p.t < 0.15 ? 'wind' : 'active', p: p.t < 0.15 ? p.t / 0.15 : (p.t - 0.15) / 0.2, side: 1 };
+      poseHumanoid(f, { x: p.x, y: p.y, face: p.face, moving: p.walkT > 0 && p.state === 'move', walkT: p.walkT, pose: p.state === 'roll' ? 'roll' : p.state === 'dead' ? 'dead' : null, t: p.t, wang, thrust, wtilt: p.state === 'attack' ? 0.05 : 0.5, lift: p.lift, speed: Math.hypot(p.vx, p.vy), time: t, atk: atkPose, charge: p.chargeT, hurt: p.state === 'hurt' ? (0.2 - p.t) / 0.2 : 0, deadT: p.state === 'dead' ? p.t : null });
       f.g.visible = f.g.visible && !G.hidePlayer;
-      setFlash(f, p.flash > 0 || (p.chargeT > 0.6 && Math.floor(t * 10) % 2 === 0));
+      setFlash(f, p.flash > 0 || (p.chargeT > 0.6 && Math.floor(t * 10) % 2 === 0), p.flash > 0 ? '#ff6a5a' : P.cream);
       f.shadow.position.set(p.x, 0.15, p.y);
       // blade trails while a blow is out
       const swinging = (p.state === 'attack' && p.atk && p.atk.phase !== 'rec') || p.state === 'ult';
@@ -819,7 +900,9 @@ HL.R3 = (() => {
       if (e.type === 'hound') {
         f.g.position.set(e.x, 0, e.y); f.g.rotation.y = rotFor(e.face);
         const sw = Math.sin(e.walkT * Math.PI * 3) * 0.8; f.legs.forEach((l, i) => (l.rotation.x = (i % 2 ? sw : -sw) * (i < 2 ? 1 : -1)));
-        f.rig.rotation.set(e.dead ? 0 : e.state === 'tele' ? 0.2 : 0, 0, e.dead ? Math.PI / 2 : 0); f.rig.position.y = e.state === 'atk' ? 3 : 0;
+        const dk = e.dead ? HL.clamp(e.deadT / 0.35, 0, 1) : 0;
+        f.rig.rotation.set(e.state === 'tele' ? 0.25 : e.flash > 0 ? -0.3 : 0, 0, Math.PI / 2 * dk); f.rig.position.y = e.state === 'atk' ? 3 : e.state === 'tele' ? -1 : 0;
+        if (e.dead && e.deadT > 1) f.g.position.y = -(e.deadT - 1) * 6;
         f.eyes.visible = glint;
       } else if (e.type === 'lurker') {
         f.g.position.set(e.x, 0, e.y);
@@ -829,7 +912,9 @@ HL.R3 = (() => {
         f.eyes.position.set(f.segs[5].position.x, 1.2 + 5 * 2.2 * em + 0.6, 1.2); f.eyes.visible = em > 0.5;
       } else if (e.type === 'husk') {
         f.g.position.set(e.x, 0, e.y); f.g.rotation.y = rotFor(e.face);
-        f.rig.position.y = e.dead ? 0 : Math.abs(Math.sin(e.walkT * Math.PI * 2)) * 0.8; f.rig.rotation.x = e.dead ? -Math.PI / 2 : e.state === 'tele' ? 0.4 : e.state === 'atk' ? 0.6 : 0.15;
+        const dk = e.dead ? HL.clamp(e.deadT / 0.3, 0, 1) : 0;
+        f.rig.position.y = e.dead ? 0 : Math.abs(Math.sin(e.walkT * Math.PI * 2)) * 0.8; f.rig.rotation.x = e.dead ? -Math.PI / 2 * dk : e.state === 'tele' ? 0.4 : e.state === 'atk' ? 0.6 : e.flash > 0 ? -0.3 : 0.15;
+        if (e.dead && e.deadT > 0.8) f.g.position.y = -(e.deadT - 0.8) * 7;
       } else if (e.type === 'wraith') {
         f.g.position.set(e.x, 4 + Math.sin(e.t * 2.4) * 1.5, e.y); f.g.rotation.y = rotFor(e.face);
         f.g.visible = !gone && !e.hidden; f.rig.rotation.x = e.dead ? -1.2 : 0;
@@ -852,7 +937,9 @@ HL.R3 = (() => {
         if (e.type === 'brute') wkind = 'maul';
         const wang = e.type === 'guard' || e.type === 'brute' ? (e.state === 'tele' || e.state === 'slamT' ? dir + Math.PI * 0.9 : e.state === 'rec' && e.t < 0.3 ? dir : dir + 0.8) : e.type === 'archer' ? dir : dir + 0.6;
         if (e.type === 'brute' && e.state === 'charge' && Math.random() < 0.5) HL.vfx.ghost(f, P.red0);
-        poseHumanoid(f, { x: e.x, y: e.y, face: e.face, moving: ['chase', 'return', 'walk'].includes(e.state) || (e.state === 'idle' && e.wander && e.wander.go), walkT: e.walkT, pose: e.dead ? 'dead' : null, wang: e.type === 'drifter' ? null : wang, reach: e.type === 'drifter' && (e.state === 'tele' || e.state === 'atk'), glint, lean: e.type === 'drifter' && e.state === 'tele' ? 0.35 : e.state === 'atk' ? 0.25 : 0, wtilt: e.type === 'guard' && e.state === 'tele' ? -0.9 : 0.4 });
+        poseHumanoid(f, { x: e.x, y: e.y, face: e.face, moving: ['chase', 'return', 'walk', 'charge'].includes(e.state) || (e.state === 'idle' && e.wander && e.wander.go), walkT: e.walkT, pose: e.dead ? 'dead' : null, deadT: e.dead ? e.deadT : null, time: t, speed: e.state === 'charge' ? 120 : e.state === 'chase' ? 40 : 15,
+          hurt: e.flash > 0 && !e.dead ? e.flash / 0.09 : 0, windup: e.state === 'tele' || e.state === 'slamT' ? HL.clamp(e.t / 0.6, 0, 1) : 0,
+          raise: (e.type === 'drifter' && e.state === 'tele') || (e.type === 'brute' && e.state === 'slamT'), wang: e.type === 'drifter' ? null : wang, reach: e.type === 'drifter' && e.state === 'atk', glint, lean: e.type === 'drifter' && e.state === 'tele' ? -0.2 : e.state === 'atk' ? 0.35 : e.state === 'charge' ? 0.45 : e.type === 'brute' && e.state === 'tele' ? 0.3 : 0, wtilt: e.type === 'guard' && e.state === 'tele' ? -0.9 : 0.4 });
       }
     });
     for (const [key, f] of figs) if (!alive.has(key)) { scene.remove(f.g); scene.remove(f.shadow); figs.delete(key); }
@@ -899,7 +986,8 @@ HL.R3 = (() => {
       const q = f.t / f.life;
       if (f.k === 'p') put(f.x, f.z + 3, f.y, f.col);
       else if (f.k === 'd') put(f.x, 1 + q * 4, f.y, q < 0.5 ? P.ash1 : P.ash2);
-      else if (f.k === 'ring') { const r = f.r * (0.3 + q * 0.7), m = Math.max(10, Math.floor(r * 1.4)); for (let i = 0; i < m; i++) { const a = (i / m) * HL.TAU; put(f.x + Math.cos(a) * r, 1, f.y + Math.sin(a) * r, f.col); } }
+      else if (f.k === 'ring') { if (!f.v3) { f.v3 = true; HL.vfx.ring3d(f.x, f.y, 0.6, f.r, f.col, f.life); } }
+      else if (f.k === 'slash' && R.tp) { /* the blade's own trail draws the swing */ }
       else if (f.k === 'slash') {
         const arcK = Math.round(f.arc * 20) / 20, m2 = decal('slash', arcK);
         m2.position.set(f.x, 0.7, f.y + 5); m2.scale.setScalar(f.r + 2); m2.rotation.set(-Math.PI / 2, 0, -(f.a + arcK / 2));
@@ -907,7 +995,7 @@ HL.R3 = (() => {
  const m = Math.ceil(f.arc * f.r * 1.2); for (let i = 0; i <= m; i++) { if (q > 0.5 && i / m < (q - 0.5) * 2) continue; const a = f.a - f.arc / 2 + (f.arc * i) / m; put(f.x + Math.cos(a) * f.r, 6, f.y + 5 + Math.sin(a) * f.r, q < 0.5 ? f.col : P.cream3); } }
     }
     if (!w.dark) { // drifting ash
-      for (let i = 0; i < 70; i++) { const ax = ((HL.hash(i, 1, 3) * 600 + t * (8 + (i % 5))) % 600) - 300, az = ((HL.hash(i, 2, 3) * 400 + t * (4 + (i % 3))) % 400) - 200; put(camT.x + ax, 30 + HL.hash(i, 3, 3) * 50, camT.y + az, P.ash0); }
+      for (let i = 0; i < (R.tp ? 28 : 70); i++) { const ax = ((HL.hash(i, 1, 3) * 600 + t * (8 + (i % 5))) % 600) - 300, az = ((HL.hash(i, 2, 3) * 400 + t * (4 + (i % 3))) % 400) - 200; put(camT.x + ax, 30 + HL.hash(i, 3, 3) * 50, camT.y + az, P.ash0); }
     }
     for (let i = n; i < N; i++) { ptsPos[i * 3 + 1] = -999; }
     pts.geometry.attributes.position.needsUpdate = true; pts.geometry.attributes.color.needsUpdate = true; pts.geometry.setDrawRange(0, n);
@@ -920,6 +1008,7 @@ HL.R3 = (() => {
       R.occluded = raycaster.intersectObjects(near, false).length > 0;
     }
     // effects
+    HL.vfx.attn(R.tp);
     HL.vfx.update(dt * (G.slowT > 0 && G.state === 'play' ? G.slowScale || 0.3 : 1));
     poseCutActors(t);
     post.flash = Math.max(0, post.flash - dt * 2.6); post.chroma = Math.max(0, post.chroma - dt * 2.4); post.kick = Math.max(0, post.kick - dt * 4);
@@ -968,7 +1057,7 @@ HL.R3 = (() => {
   };
   R.overlay = function (g) {
     const G = HL.G, p = G.player;
-    for (const f of HL.fx.list) if (f.k === 'text') { const s = R.project(f.x, 10, f.y); if (s.behind) continue; HL.text(g, f.s, s.x, s.y - (f.t * 8), f.t / f.life > 0.7 ? P.cream3 : f.col, 0.5, 1, P.ink); }
+    if (!R.tp) for (const f of HL.fx.list) if (f.k === 'text') { const s = R.project(f.x, 10, f.y); if (s.behind) continue; HL.text(g, f.s, s.x, s.y - (f.t * 8), f.t / f.life > 0.7 ? P.cream3 : f.col, 0.5, 1, P.ink); }
     for (const e of G.enemies) {
       if (e.dead || e.hidden) continue;
       if (e.state === 'alert' && !R.tp) { const s = R.project(e.x, e.type === 'keeper' ? 46 : 18, e.y); HL.text(g, '!', s.x, s.y - 8, P.red0, 0.5, 1, P.ink); }

@@ -379,9 +379,17 @@ UI.drawCut = (g, G) => {
 };
 // ------------------------------------------------------------------ the item screen (from the reference: dotted grid, speckled cells)
 UI.menu = { tab: 'items', sel: null, jsel: 0 };
-UI.drawMenu = (g, G) => {
+UI.drawMenu = (g, G, hdHeader) => {
   const P = P_, W = G.W, H = G.H, M = UI.menu, L = G.safe.l, R = G.safe.r;
   g.fillStyle = P.ui; g.fillRect(0, 0, W, H);
+  if (!hdHeader) UI.drawMenuTabs(g, G);
+  if (M.tab === 'items') UI.drawItems(g, G);
+  else if (M.tab === 'map') UI.drawMap(g, G);
+  else if (M.tab === 'journal') UI.drawJournal(g, G);
+  else UI.drawSystem(g, G);
+};
+UI.drawMenuTabs = (g, G) => {
+  const P = P_, W = G.W, M = UI.menu, L = G.safe.l, R = G.safe.r;
   const tabs = [['items', 'Items'], ['map', 'Map'], ['journal', 'Journal'], ['system', 'System']];
   let tx = L + 14;
   for (const [id, name] of tabs) {
@@ -392,10 +400,6 @@ UI.drawMenu = (g, G) => {
     tx += w + 18;
   }
   HL.text(g, 'x', W - R - 14, 8, P.cream); UI.region(W - R - 26, 0, 26, 24, () => G.closeMenu());
-  if (M.tab === 'items') UI.drawItems(g, G);
-  else if (M.tab === 'map') UI.drawMap(g, G);
-  else if (M.tab === 'journal') UI.drawJournal(g, G);
-  else UI.drawSystem(g, G);
 };
 UI.drawItems = (g, G) => {
   const P = P_, W = G.W, L = G.safe.l, M = UI.menu;

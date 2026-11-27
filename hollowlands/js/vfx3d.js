@@ -25,8 +25,8 @@ HL.vfx = (() => {
     g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('color', new T.BufferAttribute(col, 3));
     g.setAttribute('size', new T.BufferAttribute(size, 1)); g.setAttribute('alpha', new T.BufferAttribute(alpha, 1));
     const m = new T.ShaderMaterial({
-      uniforms: {},
-      vertexShader: 'attribute float size; attribute float alpha; attribute vec3 color; varying vec3 vC; varying float vA; void main(){ vC = color; vA = alpha; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = size; }',
+      uniforms: { attn: { value: 0 } },
+      vertexShader: 'uniform float attn; attribute float size; attribute float alpha; attribute vec3 color; varying vec3 vC; varying float vA; void main(){ vC = color; vA = alpha; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = size * mix(1.0, clamp(70.0 / -mv.z, 0.35, 2.6), attn); }',
       fragmentShader: 'varying vec3 vC; varying float vA; void main(){ vec2 d = gl_PointCoord - 0.5; float r = dot(d, d) * 4.0; if (r > 1.0) discard; gl_FragColor = vec4(vC * (1.15 - r * 0.5), vA * (1.0 - r * 0.35)); }',
       transparent: true, depthWrite: false, blending: additive ? T.AdditiveBlending : T.NormalBlending,
     });
@@ -77,7 +77,8 @@ HL.vfx = (() => {
   function beam(x, y, col, dur, r = 6, h = 160) {
     let o = beams.find((q) => !q.on);
     if (!o) { const m = new T.Mesh(beamGeo, new T.MeshBasicMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide })); m.renderOrder = 9; scene.add(m); o = { m }; beams.push(o); }
-    o.m.material.blending = api.dark ? T.AdditiveBlending : T.NormalBlending; o.m.material.vertexColors = !!api.dark; o.m.material.needsUpdate = true;
+    if (api.tpOn) r *= 0.35; // seen from behind the shoulder, a top-view pillar would fill the screen
+    const add = api.dark || api.tpOn; o.m.material.blending = add ? T.AdditiveBlending : T.NormalBlending; o.m.material.vertexColors = add; o.m.material.needsUpdate = true;
     Object.assign(o, { on: true, t: 0, dur, r, h }); o.m.material.color.set(col); o.m.position.set(x, 0, y); o.m.visible = true;
   }
   function decal(x, y, r, col, dur) {
@@ -171,7 +172,7 @@ HL.vfx = (() => {
         o.m.material.opacity = (1 - q) * o.op;
       }
       for (const o of lights) if (o.on) { o.t += dt; const q = o.t / o.dur; if (q >= 1) { o.on = false; o.l.intensity = 0; } else o.l.intensity = o.i * (1 - q) * (1 - q); }
-      for (const o of beams) if (o.on) { o.t += dt; const q = o.t / o.dur; if (q >= 1) { o.on = false; o.m.visible = false; continue; } const s = q < 0.15 ? q / 0.15 : 1; o.m.scale.set(o.r * (q < 0.15 ? 2 - s : 1 - q * 0.6), o.h * s, o.r * (q < 0.15 ? 2 - s : 1 - q * 0.6)); o.m.material.opacity = (1 - q) * (api.dark ? 1 : 0.8); }
+      for (const o of beams) if (o.on) { o.t += dt; const q = o.t / o.dur; if (q >= 1) { o.on = false; o.m.visible = false; continue; } const s = q < 0.15 ? q / 0.15 : 1; o.m.scale.set(o.r * (q < 0.15 ? 2 - s : 1 - q * 0.6), o.h * s, o.r * (q < 0.15 ? 2 - s : 1 - q * 0.6)); o.m.material.opacity = (1 - q) * (api.dark ? 1 : api.tpOn ? 0.6 : 0.8); }
       for (const o of decals) if (o.on) { o.t += dt; const q = o.t / o.dur; if (q >= 1) { o.on = false; o.m.visible = false; continue; } o.m.material.opacity = Math.min(0.75, (1 - q) * 1.4); if (!o.m.material.alphaMap) { o.m.material.alphaMap = api._decalTex; o.m.material.needsUpdate = true; } }
       for (const o of debris) if (o.on) {
         o.t += dt; if (o.t > o.life) { o.on = false; o.m.visible = false; continue; }
@@ -198,6 +199,7 @@ HL.vfx = (() => {
         t.m.geometry.attributes.position.needsUpdate = true; t.m.geometry.attributes.color.needsUpdate = true;
       }
     },
+    attn(on) { api.tpOn = !!on; if (!api.ok) return; glow.pts.material.uniforms.attn.value = on ? 1 : 0; smoke.pts.material.uniforms.attn.value = on ? 1 : 0; },
     setDark(d) { api.dark = !!d; if (!api.ok) return; glow.pts.material.blending = d ? T.AdditiveBlending : T.NormalBlending; glow.pts.material.needsUpdate = true; },
     clear() {
       if (!api.ok) return;
