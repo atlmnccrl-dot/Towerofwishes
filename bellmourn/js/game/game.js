@@ -7,7 +7,7 @@ import * as THREE from '../../vendor/three.module.min.js';
 import { World, angTo } from './sim.js';
 import { buildLevel, K } from '../world/level.js';
 import { CREDITS, ACT_OF, ROAD_GOES_ON } from './story.js';
-import { Cutscene, drawLineBox } from './cutscene.js';
+import { Cutscene, drawLineBox, drawNameCard } from './cutscene.js';
 import { SCENES, AFTER_BOSS, BEFORE_BOSS, ON_ENTER, STAGE } from './scenes/index.js';
 import { BOSS_LINES } from './scenes/lines.js';
 import { SPEAKERS, WARDENS } from './scenes/cast.js';
@@ -648,6 +648,8 @@ export class Game {
     const show = () => { if (this.run !== run) return; this.openScreen('MapScreen', { run, map: run.map, scene: this.levelId === 'map' ? this.level : null }, { pick: (id) => this.goNode(id) }); };
     if (this.mapFlat) { show(); return; }
     // the route as a place: the act's road built as a diorama, the warden standing at their stop (world/mapscene.js)
+    // while it builds (a few frames) nothing else runs: not the Haven that was just left, not the area just won
+    this.closeScreen(); this.go('loading');
     this.stageMap().then(show).catch((err) => { console.error('bellmourn: the map scene failed, the sheet instead', err); this.mapFlat = true; show(); });
   }
   async stageMap() {
@@ -915,7 +917,7 @@ export class Game {
     const done = this.meta.done || [];
     if (done.length > before) {
       const CH = (OPT.challenges && OPT.challenges.CHALLENGES) || [];
-      for (const id of done.slice(before)) { const c = Array.isArray(CH) ? CH.find((x) => x.id === id) : CH[id]; this.ui.toast('CHALLENGE: ' + String((c && c.title) || id).toUpperCase(), { color: COL.gold, big: true, life: 3 }); } // PROPOSAL
+      for (const id of done.slice(before)) { const c = Array.isArray(CH) ? CH.find((x) => x.id === id) : CH[id]; this.ui.toast('CHALLENGE: ' + String((c && c.title) || id).toUpperCase(), { color: COL.gold, life: 3.5 }); } // small: several can land on a boss's fall, and that moment is the camera's // PROPOSAL
       this.sound.play('bigBell', { vol: 0.5 }); this.persistMeta();
     }
   }
@@ -945,6 +947,7 @@ export class Game {
     const short = this.seen(id) && !o.always && !this.forceScene;
     if (this.world) this.world.idle();
     this.markSeen(id); this.cutBack = back; this.bark = null;
+    this.killCam = null; if (this.cine) { this.cine.on = false; this.cine.y = 45; this.cine.p = 40; } if (this.r.setView) this.r.setView(); // a scene starts from the plain angle (its own angle() steps turn it)
     try {
       this.cut = new Cutscene(this, sc, ctx, { onEnd: (res) => { this.cut = null; this.persist(); if (onEnd) onEnd(res); else this.go(back === 'cutscene' ? 'play' : back); } });
     } catch (err) { console.error('bellmourn: scene ' + id + ' failed', err); this.cut = null; if (onEnd) onEnd({}); return false; }
@@ -1248,10 +1251,11 @@ export class Game {
     const bo = opt('bosses5', 'bossOpts'); let O = {}; if (bo) { try { O = bo(B.type, this.levelId) || {}; } catch (e) { O = {}; } }
     const BS = run ? bossScale(run) : { hp: 1, dmg: 1 }; const asc = !!B.ascended || !!(run && tollMods(runToll(run)).ascended && Object.values(ACTS).some((A) => A.boss === this.levelId));
     this.boss = this.world.spawnBoss(B.type, B.x, B.z, { ...O, face: B.face ?? 0, hpMul: (B.hpMul || 1) * (O.hpMul || 1) * Math.max(0.45, Math.min(1.6, hpK)) * BS.hp, dmgMul: (B.dmgMul || 1) * (O.dmgMul || 1) * Math.max(0.6, Math.min(1.3, dK)) * BS.dmg, ascended: asc, choice: run ? run.choice : null, trueForm: (B.type === 'wheel' || B.type === 'god') && run && run.choice === 'sing' });
+    this.boss.entry = B.breakout || null; // the level's own way in for its boss (Gallows Gate: out of the gaol-house)
     if (typeof B4.ascendDef === 'function' && asc) { try { B4.ascendDef(this.boss); } catch (err) { console.error(err); } }
     this.bossTonics0 = run ? run.stats.tonics : 0; this.track({ type: 'bossStart', boss: B.type });
     const hold = () => { const b = this.boss; b.state = 'roar'; b.anim = 'idle'; b.t = -2; b.iframes = 99; };
-    hold(); this.sound.setMusic('none'); this.entT = 0; this.entDoneT = 0;
+    hold(); this.sound.setMusic('none'); this.entT = 0; this.entDoneT = 0; this.introNameT = 0;
     // a boss with words before its fight: after its entrance (or, with none, before the roar)
     const pre = BEFORE_BOSS[B.type]; this.preScene = pre && !this.seen(pre) ? pre : null;
     if (this.preScene && !this.entranceOf(this.boss)) { const sid = this.preScene; this.preScene = null; this.playScene(sid, {}, () => { hold(); this.go('bossIntro'); }); }
@@ -1271,7 +1275,7 @@ export class Game {
         this.entT = skip ? E.dur : Math.min(E.dur, (this.entT || 0) + dt);
         try { E.step(this.world, b, this.entT, this.fx); } catch (err) { console.error('bellmourn: entrance', err); this.entT = E.dur; }
         b.iframes = 99; b.animT += dt; this.handleEvents(this.world.drain());
-        if (this.entT >= E.dur) { this.entDoneT = this.stateT; this.sound.play('roar'); }
+        if (this.entT >= E.dur) { this.entDoneT = this.stateT; if (!E.ownRoar) this.sound.play('roar'); }
       }
       if (this.entDoneT && (this.stateT - this.entDoneT > 2.2 || (skip && this.stateT - this.entDoneT > 0.25))) {
         const fight = () => { b.state = 'idle'; b.anim = 'idle'; b.t = 0; b.iframes = 0; b.ai.cd = 1.2; this.bossState = 'fight'; this.entDoneT = 0; this.go('play'); this.sound.setMusic('boss'); };
@@ -1381,6 +1385,13 @@ export class Game {
       switch (ev.type) {
         case 'swing': if (ev.e === hero) snd.play(ev.atk.heavy ? 'swingHeavy' : 'swing'); else snd.play('swing', { vol: 0.6 }); break;
         case 'shoot': snd.play(ev.kind === 'hfire' ? 'orb' : 'bolt', { vol: 0.5 }); break;
+        case 'breach': { // the gaol's door (props/gaol.js): blows from inside, then the Gaoler comes through it
+          const D = this.level && this.level.marks && this.level.marks[ev.mark]; if (!D) break;
+          if (ev.hit) { D.hit(ev.hit); snd.play('boom', { vol: 0.5 + 0.2 * ev.hit }); snd.play('clang', { vol: 0.3 * ev.hit, delay: 0.03 }); }
+          if (ev.burst && !D.broken) { D.burst(); if (!ev.quiet) { snd.play('boom'); snd.play('thunder', { vol: 0.8, big: true }); snd.play('hitHeavy', { delay: 0.05 }); r.post.flash = 0.45; this.flashT = 0.08; this.zoomPunch = 1.0; } }
+          break;
+        }
+        case 'bossRoar': snd.play('roar'); break;
         case 'trait': { // a warden's trait at work (sim_traits.js): its light, and its name the first times it fires
           const c = ev.col || [2.6, 2.6, 2.6];
           if (ev.r > 0) fx.shockRing(ev.x, ev.z, ev.r, c, 0.45); fx.emit(ev.x, 1.0, ev.z, { n: ev.r > 2 ? 26 : 12, speed: 2, life: 0.45, grav: -0.5, color: c, size: 1 });
@@ -1413,7 +1424,7 @@ export class Game {
           if (ev.elite) this.ui.toast('ELITE SLAIN', { color: COL.gold, life: 1.5 });
           if (e.type && e.team === 'foe' && noteKill(this.codexSave(), e.type)) this.ui.toast('NEW IN THE BESTIARY', { color: COL.ice, life: 2 });
           if (ev.boss && e.mini) { this.miniDown(e); r.shake(0.5, 0.8); fx.mist(e.x, 1.5, e.z, 40, [0.3, 0.3, 0.36]); fx.shockRing(e.x, e.z, 6, [2.0, 1.8, 2.6], 0.7); }
-          else if (ev.boss) { this.bossDown(); r.shake(0.8, 1.2); this.zoomPunch = 1.3; fx.mist(e.x, 1.5, e.z, 60, [0.3, 0.3, 0.36]); fx.embers(e.x, 1.5, e.z, 60, [3, 1.4, 0.4]); fx.shockRing(e.x, e.z, 9, [2.6, 2.2, 1.6], 0.9); r.post.flash = 0.35; this.flashT = 0.12; }
+          else if (ev.boss) { this.bossDown(); r.shake(0.8, 1.2); this.zoomPunch = 1.3; { const sc = (e.def && (e.def.scale || (e.def.look && e.def.look.scale))) || 1; this.killCam = { t: 0, dur: 2.6, x: e.x, z: e.z, h: Math.min(3, 0.8 * sc), zoom: e.def && e.def.colossal ? 0.8 : Math.max(1.05, 1.7 - 0.22 * sc), dir: hero && hero.x > e.x ? -1 : 1 }; } fx.mist(e.x, 1.5, e.z, 60, [0.3, 0.3, 0.36]); fx.embers(e.x, 1.5, e.z, 60, [3, 1.4, 0.4]); fx.shockRing(e.x, e.z, 9, [2.6, 2.2, 1.6], 0.9); r.post.flash = 0.35; this.flashT = 0.12; }
           break;
         }
         case 'perfect': if (this.run && ev.e === hero) { this.run.stats.perfects++; this.track({ type: 'perfect' }); } snd.play('perfect'); this.view.get(hero) && fx.ghost(this.view.get(hero), [0.4, 0.8, 1.6], 0.5); this.ui.toast('PERFECT', { color: COL.ice, life: 0.9 }); break;
@@ -1527,19 +1538,34 @@ export class Game {
       for (const e of w.ents) e.animT += dt; this.view.update(w, dt);
     } else if (w && w.hero) {
       const h = w.hero; target = new THREE.Vector3(h.x + h.vx * 0.18, 0, h.z + h.vz * 0.18);
-      const E = this.state === 'bossIntro' && this.entranceOf(this.boss);
+      const E = this.state === 'bossIntro' && this.entranceOf(this.boss); let entCam = null;
       if (E) { // the entrance: the camera stays on the boss (entrance.cam: zoom and offset)
-        const c = E.cam || {}; const o = c.off || c.offset || [0, 0, 0]; const ox = Array.isArray(o) ? o[0] : (o.x || 0), oy = (Array.isArray(o) ? (o.length > 2 ? o[1] : 0) : (o.y || 0)) + (c.lift || 0), oz = Array.isArray(o) ? (o.length > 2 ? o[2] : o[1]) : (o.z || 0);
-        const k = Math.min(1, this.stateT / 0.6); target.lerp(new THREE.Vector3(this.boss.x + ox, 1.6 * (this.boss.def.scale || 1) * 0.6 + oy + (this.boss.leapH || 0) * 0.5, this.boss.z + oz), k * 0.9); zt = 1 + k * ((c.zoom || 1.25) - 1);
+        const c = (typeof E.cam === 'function' ? E.cam(this.entDoneT ? E.dur : (this.entT || 0), this.boss) : E.cam) || {}; const o = c.off || c.offset || [0, 0, 0]; entCam = c; const ox = Array.isArray(o) ? o[0] : (o.x || 0), oy = (Array.isArray(o) ? (o.length > 2 ? o[1] : 0) : (o.y || 0)) + (c.lift || 0), oz = Array.isArray(o) ? (o.length > 2 ? o[2] : o[1]) : (o.z || 0);
+        const k = Math.min(1, this.stateT / 0.6); target.lerp(new THREE.Vector3(this.boss.x + ox, 1.6 * (this.boss.def.scale || 1) * 0.6 + oy + (this.boss.leapH || 0) * 0.5, this.boss.z + oz), k * 0.9); zt = (1 + k * ((c.zoom || 1.25) - 1)) * (1 + 0.22 * Math.min(1, (this.introNameT || 0) * 1.5)); // a push in as its name lands
+        if (c.at) target = new THREE.Vector3(c.at.x, c.at.y ?? 1.5, c.at.z); // the entrance points the camera itself (the gaol's door)
+        if (c.at && this.stateT < 0.15) { this.camFocus.copy(target); this.zoom = zt = c.zoom || zt; } // a hard cut to it
       } else if (this.state === 'bossIntro' && this.boss) { const k = Math.min(1, this.stateT / 1.0) * (this.stateT < 3.8 ? 1 : Math.max(0, 1 - (this.stateT - 3.8) / 0.6)); target.lerp(new THREE.Vector3(this.boss.x, 1.6 * (this.boss.def.scale || 1) * 0.6, this.boss.z), k * 0.85); zt = 1 + k * 0.25; }
       if (this.boss && !this.boss.dead && this.state === 'play') target.lerp(new THREE.Vector3(this.boss.x, 0, this.boss.z), 0.2);
       // a colossal boss (God): the camera pulls back and frames the two of them, its eye at His height
       if (this.boss && !this.boss.dead && this.boss.def.colossal && (this.state === 'play' || this.state === 'bossIntro')) { target.lerp(new THREE.Vector3(this.boss.x, (this.boss.def.scale || 1) * 1.1 + (this.boss.leapH || 0) * 0.4, this.boss.z), 0.35); zt = Math.min(zt, this.boss.def.colossal); }
+      // the fights' own film moments (the angle eases back up into the fight's when they end):
+      // a boss arrives: a hard cut low under it, sweeping slowly round while it enters and its name lands;
+      // a boss falls: in the slow motion the camera drops and swings round the body; the warden falls: it sinks and turns
+      let want = null; const C = this.cine || (this.cine = { y: 45, p: 40, on: false });
+      if (this.state === 'bossIntro' && this.boss) { const k = Math.min(1, this.stateT / 6); want = [24 + 42 * k, this.boss.def.colossal ? 12 : 19]; if (entCam && entCam.yaw !== undefined) want = [entCam.yaw, entCam.pitch ?? 19]; if (!C.on) { C.y = want[0]; C.p = want[1]; } }
+      else if (this.killCam) {
+        const K = this.killCam; K.t += dt; const k = Math.min(1, K.t / K.dur); const e = k * k * (3 - 2 * k);
+        if (K.t < K.dur) { want = [45 + K.dir * 55 * e, 40 - 23 * Math.min(1, K.t / 0.5)]; target = new THREE.Vector3(K.x, K.h, K.z); zt = K.zoom + 0.25 * e; }
+        else this.killCam = null;
+      } else if (this.state === 'dead' && !this.duelOn) { const k = Math.min(1, this.stateT / 5); want = [45 + 50 * k * (2 - k), 40 - 20 * Math.min(1, this.stateT / 1.2)]; target = new THREE.Vector3(h.x, 0.5, h.z); zt = 1.25 + 0.5 * k; }
+      if (want) { const q = Math.min(1, dt * 7); C.y += (want[0] - C.y) * q; C.p += (want[1] - C.p) * q; C.on = true; }
+      else if (C.on) { const q = Math.min(1, dt * 6); C.y += (45 - C.y) * q; C.p += (40 - C.p) * q; if (Math.abs(C.y - 45) < 0.4 && Math.abs(C.p - 40) < 0.4) { C.on = false; C.y = 45; C.p = 40; } }
+      if (C.on) tView = [C.y, C.p];
       // the tutorial duel runs its own camera (close on the two of them, the gate at the end)
       const tc = this.tutorial && this.tutorial.camera && (this.state === 'play' || this.state === 'screen') ? this.tutorial.camera() : null; if (tc) { target = tc.target; zt = tc.zoom; tView = tc.view || null; if (tc.snap) { this.camFocus.copy(target); this.zoom = zt; } }
       this.view.update(w, dt);
     }
-    if (target && !this.debugCamHold && this.state !== 'cutscene') this.camFocus.lerp(target, Math.min(1, dt * (this.state === 'play' ? 6 : (this.inHaven ? 2 : (this.levelId === 'map' ? 3.2 : 2.5)))));
+    if (target && !this.debugCamHold && this.state !== 'cutscene') this.camFocus.lerp(target, Math.min(1, dt * (this.state === 'play' ? 6 : (this.inHaven ? 2 : (this.levelId === 'map' ? 3.2 : (this.state === 'bossIntro' ? 5 : 2.5))))));
     if (this.zoomPunch) { zt = Math.max(zt, this.zoomPunch); this.zoomPunch = Math.max(1, this.zoomPunch - dt * 0.6); if (this.zoomPunch <= 1.001) this.zoomPunch = 0; }
     if (this.debugZoom) zt = this.debugZoom;
     if (this.state !== 'cutscene') this.zoom += (zt - this.zoom) * Math.min(1, dt * (this.inHaven ? 1.6 : 5)); r.setZoom(Math.abs(this.zoom - 1) < 0.004 ? 1 : this.zoom);
@@ -1620,9 +1646,10 @@ export class Game {
     if (S === 'bossIntro' && this.boss) {
       // the name sits inside the bottom bar so it never covers the fight
       const k = Math.min(1, this.stateT * 2) * (this.entranceOf(this.boss) || this.stateT <= 4.0 ? 1 : Math.max(0, 1 - (this.stateT - 4.0) * 2.5));
-      const bh = Math.round(H * 0.2 * k); if (bh > 0) { ui.rect(0, 0, W, bh, '#000'); ui.rect(0, H - bh, W, bh, '#000'); }
+      const bh = Math.round(H * 0.13 * k); if (bh > 0) { ui.rect(0, 0, W, bh, '#000'); ui.rect(0, H - bh, W, bh, '#000'); } // film bars (the name lands in the picture)
       const ik = this.introK();
-      if (ik > 0) { const a = ik * k; const nm = this.boss.def.name.toUpperCase(); ui.text(nm, W / 2, H - 32, { align: 'center', scale: ui.measure(nm, 2) > W - 12 ? 1 : 2, color: COL.white, alpha: a }); ui.text((this.boss.def.title || '').toUpperCase(), W / 2, H - 13, { align: 'center', color: COL.red, alpha: a }); }
+      // its name slams in on the lower third, as in the opening (cutscene.js drawNameCard): a bell, a jolt
+      if (ik > 0) { if (!(this.introNameT > 0)) { this.introNameT = 0.0001; this.sound.play('bigBell', { vol: 0.7 }); if (this.settings.shake !== false) this.r.shake(0.6, 0.4); this.r.post.flash = 0.35; this.flashT = 0.08; } else this.introNameT += dt; drawNameCard(ui, this.boss.def.name.toUpperCase(), (this.boss.def.title || '').toUpperCase(), this.introNameT, 99); }
       // its line, in the top bar, in its own colour
       const BL = bossLines(this.boss.type); const la = Math.max(0, ik - 0.35) / 0.65 * k;
       if (BL && BL.intro && la > 0) { const sp = speaker(this.boss.type); const tw = Math.min(W - 24, 252); const ls = ui.wrap('"' + BL.intro + '"', tw).slice(0, 2); ls.forEach((l, i) => ui.text(l, W / 2, Math.max(3, Math.round(bh / 2) - ls.length * 5) + i * 10, { align: 'center', color: sp.color || COL.text, alpha: la, shadow: false })); }

@@ -675,17 +675,59 @@ export function ascendDef(e) {
 const once = (S, key, fn) => { if (!S.fired.has(key)) { S.fired.add(key); fn(); } };
 // the scripts: (w, e, t, fx, st) with st.home {x, z, face}, st.fired, st.dt; F(fn) runs fn only with fx
 export const ENTRANCES = {
-  // PROPOSAL: the Gaoler kicks his way out through the wall of the gallows square
-  gaoler: { kind: 'wall', dur: 3.4, cam: { zoom: 1.15 }, script(w, e, t, F, st) {
-    const back = st.at(-3.2), wall = st.at(-2.4);
-    once(st, 'piece', () => F((fx) => fx.setPiece('wall', wall.x, wall.z, st.home.face, { life: 4.5, burst: 1.25 })));
-    for (const [k, at] of [['k1', 0.35], ['k2', 0.8]]) if (t >= at) once(st, k, () => { w.emit('shake', { amt: 0.3 }); F((fx) => fx.dust(wall.x, wall.z, 14)); });
-    if (t < 1.25) { e.hidden = true; st.put(back.x, back.z); return; }
-    e.hidden = false;
-    once(st, 'burst', () => F((fx) => { fx.debris(wall.x, 1.2, wall.z, 26, [0.42, 0.36, 0.32], { ang: st.home.face, speed: 7, size: 0.22 }); fx.mist(wall.x, 1, wall.z, 30, [0.5, 0.48, 0.44]); fx.shockRing(wall.x, wall.z, 3, [1.6, 1.4, 1.2], 0.4); }));
-    const k = ease(clamp01((t - 1.25) / 0.9)); st.put(lerp(back.x, st.home.x, k), lerp(back.z, st.home.z, k));
-    if (t < 2.15) st.anim('charge', t - 1.25 + 0.85); else st.anim('roar', t - 2.15);
-  } },
+  // PROPOSAL: the Gaoler breaks out of his gaol. On his own square (the level's boss.breakout: props/gaol.js) the
+  // bricked-up door of the gaol-house shudders under three blows from inside, then bursts: its blocks fly across the
+  // square and he charges out of the dark, across the cobbles, and skids to a stop where he fights; he turns on the
+  // warden and roars. Anywhere else (an echo of him in another arena) a wall stands where he comes through.
+  gaoler: { kind: 'wall', dur: 5.2, ownRoar: true,
+    // skipped, or over: the door is broken all the same
+    finish(w, e) { if (e.entry) w.emit('breach', { mark: e.entry.mark, burst: true, quiet: true }); },
+    cam(t, e) {
+      const B = e.entry; if (!B) return { zoom: 1.15 };
+      // on the door while he pounds it (from the square's far side, low); then with him as he runs; then round to his face
+      if (t < 1.9) return { zoom: 1.5 + 0.2 * (t / 1.9), yaw: 84 - 6 * (t / 1.9), pitch: 12, at: { x: B.door.x + 0.6, y: 2.1, z: B.door.z } }; // face on: the door, the warden's back below
+      const k = ease(clamp01((t - 1.9) / 1.6)); return { zoom: lerp(1.6, 1.3, k), yaw: lerp(78, 40, ease(clamp01((t - 2.0) / 2.4))), pitch: lerp(12, 20, k) };
+    },
+    script(w, e, t, F, st) {
+      const B = e.entry;
+      if (!B) { // no gaol here: the old way, through a wall that stands behind him
+        const tt = t * (3.4 / 5.2); const back = st.at(-3.2), wall = st.at(-2.4);
+        once(st, 'piece', () => F((fx) => fx.setPiece('wall', wall.x, wall.z, st.home.face, { life: 6, burst: 1.25 * (5.2 / 3.4) })));
+        for (const [k, at] of [['k1', 0.35], ['k2', 0.8]]) if (tt >= at) once(st, k, () => { w.emit('shake', { amt: 0.3 }); F((fx) => fx.dust(wall.x, wall.z, 14)); });
+        if (tt < 1.25) { e.hidden = true; st.put(back.x, back.z); return; }
+        e.hidden = false;
+        once(st, 'burst', () => F((fx) => { fx.debris(wall.x, 1.2, wall.z, 26, [0.42, 0.36, 0.32], { ang: st.home.face, speed: 7, size: 0.22 }); fx.mist(wall.x, 1, wall.z, 30, [0.5, 0.48, 0.44]); fx.shockRing(wall.x, wall.z, 3, [1.6, 1.4, 1.2], 0.4); }));
+        const k = ease(clamp01((tt - 1.25) / 0.9)); st.put(lerp(back.x, st.home.x, k), lerp(back.z, st.home.z, k));
+        if (tt < 2.15) st.anim('charge', tt - 1.25 + 0.85); else st.anim('roar', tt - 2.15);
+        return;
+      }
+      const D = B.door, I = B.inside; const BURST = 1.9, RUN = 1.45, STOP = BURST + RUN;
+      // three blows from inside, each harder: the brickwork jumps, mortar dust falls from the lintel
+      for (const [key, at, k] of [['h1', 0.45, 0.7], ['h2', 1.0, 1.0], ['h3', 1.5, 1.5]]) if (t >= at) once(st, key, () => {
+        w.emit('breach', { mark: B.mark, hit: k }); w.emit('shake', { amt: 0.35 * k });
+        F((fx) => { fx.dust(D.x + 0.4, D.z, 10 + 8 * k); fx.emit(D.x + 0.2, 3.7, D.z, { n: Math.round(14 * k), speed: 1.2, life: 0.7, grav: 9, color: [0.5, 0.47, 0.44], size: 1 }); if (k > 1) fx.debris(D.x + 0.3, 2.6, D.z, 5, [0.3, 0.28, 0.32], { ang: Math.PI / 2, speed: 3, size: 0.12 }); });
+      });
+      if (t < BURST) { e.hidden = true; st.put(I.x, I.z); return; }
+      // through: the door's own blocks fly; dust rolls out; he is already running
+      once(st, 'burst', () => {
+        w.emit('breach', { mark: B.mark, burst: true }); w.emit('shake', { amt: 1.6 });
+        F((fx) => { fx.debris(D.x + 0.4, 1.6, D.z, 30, [0.3, 0.28, 0.32], { ang: Math.PI / 2, speed: 9, size: 0.16 }); fx.mist(D.x + 0.6, 1.2, D.z, 60, [0.42, 0.42, 0.46]); fx.mist(D.x + 2, 0.6, D.z, 30, [0.36, 0.36, 0.4]); fx.shockRing(D.x + 0.6, D.z, 5, [1.8, 1.6, 1.4], 0.5); fx.embers(D.x, 1.2, D.z, 24, [3, 1.4, 0.4]); });
+      });
+      e.hidden = false; const dirA = Math.atan2(st.home.x - I.x, st.home.z - I.z);
+      if (t < STOP) {
+        // the charge: flat out, slowing only at the end; cobbles jump under him
+        const k = clamp01((t - BURST) / RUN); const kk = 1 - Math.pow(1 - k, 1.7);
+        st.put(lerp(I.x, st.home.x, kk), lerp(I.z, st.home.z, kk)); e.face = dirA; st.anim('charge', (t - BURST) * 1.2 + 0.85);
+        if (st.every(0.07, 'dust')) F((fx) => fx.dust(e.x, e.z, k > 0.7 ? 10 : 5));
+        if (st.every(0.24, 'step')) w.emit('shake', { amt: 0.4 });
+        if (k > 0.72) once(st, 'skid', () => F((fx) => { fx.mist(e.x, 0.4, e.z, 24, [0.4, 0.4, 0.44]); fx.debris(e.x, 0.3, e.z, 10, [0.34, 0.36, 0.42], { ang: dirA, speed: 5, size: 0.1 }); }));
+        return;
+      }
+      // he stops, turns his lantern on the warden, and roars
+      st.put(st.home.x, st.home.z); const tk = ease(clamp01((t - STOP) / 0.45)); let da = st.home.face - dirA; da = Math.atan2(Math.sin(da), Math.cos(da)); e.face = dirA + da * tk;
+      if (t < STOP + 0.5) st.anim('idle', t - STOP);
+      else { once(st, 'roar', () => { w.emit('bossRoar', { e }); w.emit('shake', { amt: 1.2 }); F((fx) => fx.shockRing(e.x, e.z, 6, [2.6, 1.8, 0.8], 0.6)); }); st.anim('roar', t - STOP - 0.5); }
+    } },
   // PROPOSAL: Mother Tallow comes down from the dark in a hanging cage of candles that melts open
   // (reworked: the Gaoler has the cages now; she comes down on a great iron chandelier of candles)
   tallow: { kind: 'chandelier', dur: 3.8, cam: { zoom: 1.1, lift: 2 }, script(w, e, t, F, st) {
@@ -809,7 +851,7 @@ export const ENTRANCES = {
 export function bossEntrance(type) {
   const E = ENTRANCES[type]; if (!E) return null;
   return {
-    kind: E.kind, dur: E.dur, cam: E.cam || null,
+    kind: E.kind, dur: E.dur, cam: E.cam || null, ownRoar: !!E.ownRoar,
     step(w, e, t, fx) {
       let st = e.ai.entr;
       if (!st || t < st.last - 0.001) {
@@ -824,6 +866,7 @@ export function bossEntrance(type) {
       st.dt = Math.max(0, t - st.last); st.last = t;
       const F = (fn) => { if (fx) { try { fn(fx); } catch (err) { /* an effect never breaks the fight */ } } };
       if (t >= E.dur) {
+        if (E.finish) { try { E.finish(w, e, st); } catch (err) { /* */ } }
         st.done = true; e.entering = false; e.hidden = false; e.leapH = 0; e.iframes = 0; e.atk = null; e.tele = null;
         e.x = st.home.x; e.z = st.home.z; e.face = st.home.face; e.state = 'idle'; e.t = 0; e.anim = 'idle'; e.animT = 0; e.ai.cd = 0.8;
         return false;

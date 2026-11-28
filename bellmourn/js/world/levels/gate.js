@@ -3,6 +3,7 @@
 // gallows square where the Gaoler keeps the keys. The lane is the gaol: cell blocks with barred windows,
 // the watchtower and its beacon over the roofs, gibbet cages over the cobbles.
 import * as P from '../props/gate.js';
+import { gaolHouse } from '../props/gaol.js';
 import { VARIANTS } from '../../game/variants.js';
 
 export default {
@@ -33,7 +34,8 @@ export default {
         { foes: [{ t: 'hushed', x: -3, z: -6 }, { t: 'ghoul', x: 3, z: 3 }, { t: 'hushed', x: -6, z: -1 }] },
       ] },
   ],
-  boss: { type: 'gaoler', x: 3, z: -38, face: 0, zone: [-8, -44, 14, -30.5], gates: ['laneGate'], opens: ['exitGate'] },
+  // breakout: he smashes out through the gaol-house's bricked-up door (props/gaol.js) and charges onto the square
+  boss: { type: 'gaoler', x: 3, z: -38, face: 0, zone: [-8, -44, 14, -30.5], gates: ['laneGate'], opens: ['exitGate'], breakout: { mark: 'gaolDoor', door: { x: -8.2, z: -36 }, inside: { x: -10.6, z: -36 } } },
   exit: { zone: [0.6, -49, 5.4, -45.6], to: 'market', requires: 'boss' },
   build(K, ctx) {
     K.district(ctx, 'gate'); // the reference city: wrought iron, gothic stone, slate
@@ -92,12 +94,15 @@ export default {
     K.fence(ctx, -8.6, -27.6, 3.8, -27.6);
     ctx.marks.laneGate = K.gate(ctx, 5.5, -27.6, 2.6, 'x', { h: 2.6, open: true, swingDir: -1 });
     K.fence(ctx, 7.2, -27.6, 14, -27.6);
-    K.wall(ctx, -8.8, -45, -8.8, -27.6, 5, { face: 1, buttress: 4, arches: 3, litArches: [0, 2] });
+    // the west side: the gaol-house, the square's wall on either side of it
+    K.wall(ctx, -8.8, -45, -8.8, -39.6, 5, { face: 1, buttress: 5.4, arches: 1, litArches: [0] });
+    ctx.marks.gaolDoor = gaolHouse(ctx, K, { x: -8.2, z: -36 });
+    K.wall(ctx, -8.8, -32.4, -8.8, -27.6, 5, { face: 1, buttress: 4.8, arches: 1 });
     K.wall(ctx, -9, -45, 1.1, -45, 5, { face: 1, buttress: 4, arches: 2 });
     ctx.marks.exitGate = K.gate(ctx, 3, -45, 2.6, 'x', { h: 3, swingDir: 1 });
     K.wall(ctx, 4.9, -45, 14.2, -45, 5, { face: 1, buttress: 4, arches: 2, litArches: [1] });
     K.fence(ctx, 14, -45, 14, -27.6);
-    K.torch(ctx, -8.5, 2.4, -36, '+x'); K.torch(ctx, -3, 2.4, -44.7, '+z'); K.torch(ctx, 9, 2.4, -44.7, '+z');
+    K.torch(ctx, -8.2, 2.6, -38.6, '+x'); K.torch(ctx, -8.2, 2.6, -33.4, '+x'); K.torch(ctx, -3, 2.4, -44.7, '+z'); K.torch(ctx, 9, 2.4, -44.7, '+z');
     K.lamp(ctx, -6.5, -29.5); K.lamp(ctx, 12.4, -29.8); K.lamp(ctx, 12.2, -42.6);
     K.gallows(ctx, -4.2, -39.2);
     P.cage(ctx, 12.6, -36.8, 1.4); P.cage(ctx, -6.8, -43.2, 1.4, 2.0);
